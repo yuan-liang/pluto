@@ -1,3 +1,10 @@
+#include <omp.h>
+#include <math.h>
+#define ceild(n,d)  ceil(((double)(n))/((double)(d)))
+#define floord(n,d) floor(((double)(n))/((double)(d)))
+#define max(x,y)    ((x) > (y)? (x) : (y))
+#define min(x,y)    ((x) < (y)? (x) : (y))
+
 /*
  * Discretized 3D heat equation stencil with non periodic boundary conditions
  * Adapted from Pochoir test bench
@@ -87,21 +94,31 @@ int main(int argc, char * argv[]) {
     gettimeofday(&start, 0);
 #endif
 
-#pragma scop
-    for (t = 0; t < T-1; t++) {
-        for (i = 1; i < N+1; i++) {
-            for (j = 1; j < N+1; j++) {
-                for (k = 1; k < N+1; k++) {
-                    A[(t+1)%2][i][j][k] =   0.125 * (A[t%2][i+1][j][k] - 2.0 * A[t%2][i][j][k] + A[t%2][i-1][j][k])
-                                        + 0.125 * (A[t%2][i][j+1][k] - 2.0 * A[t%2][i][j][k] + A[t%2][i][j-1][k])
-                                        + 0.125 * (A[t%2][i][j][k-1] - 2.0 * A[t%2][i][j][k] + A[t%2][i][j][k+1])
-                                        + A[t%2][i][j][k];
-                }
+  int t1, t2, t3, t4, t5, t6, t7, t8;
+ int lb, ub, lbp, ubp, lb2, ub2;
+ register int lbv, ubv;
+for (t1=-1;t1<=62;t1++) {
+  lbp=ceild(t1,2);
+  ubp=min(49,floord(t1+38,2));
+#pragma omp parallel for private(lbv,ubv,t3,t4,t5,t6,t7,t8)
+  for (t2=lbp;t2<=ubp;t2++) {
+    for (t3=max(0,ceild(t1-1,2));t3<=min(49,floord(t1+39,2));t3++) {
+      for (t5=max(max(max(max(0,8*t1),16*t2-300),16*t3-300),16*t1-16*t2+1);t5<=min(min(min(min(498,8*t1+15),16*t2+14),16*t3+14),16*t1-16*t2+315);t5++) {
+        for (t6=max(max(16*t2,t5+1),-16*t1+16*t2+2*t5-15);t6<=min(min(16*t2+15,t5+300),-16*t1+16*t2+2*t5);t6++) {
+          for (t7=max(16*t3,t5+1);t7<=min(16*t3+15,t5+300);t7++) {
+            lbv=t5+1;
+            ubv=t5+300;
+#pragma ivdep
+#pragma vector always
+            for (t8=lbv;t8<=ubv;t8++) {
+              A[(t5 + 1) % 2][(-t5+t6)][(-t5+t7)][(-t5+t8)] = ((((0.125 * ((A[t5 % 2][(-t5+t6) + 1][(-t5+t7)][(-t5+t8)] - (2.0 * A[t5 % 2][(-t5+t6)][(-t5+t7)][(-t5+t8)])) + A[t5 % 2][(-t5+t6) - 1][(-t5+t7)][(-t5+t8)])) + (0.125 * ((A[t5 % 2][(-t5+t6)][(-t5+t7) + 1][(-t5+t8)] - (2.0 * A[t5 % 2][(-t5+t6)][(-t5+t7)][(-t5+t8)])) + A[t5 % 2][(-t5+t6)][(-t5+t7) - 1][(-t5+t8)]))) + (0.125 * ((A[t5 % 2][(-t5+t6)][(-t5+t7)][(-t5+t8) - 1] - (2.0 * A[t5 % 2][(-t5+t6)][(-t5+t7)][(-t5+t8)])) + A[t5 % 2][(-t5+t6)][(-t5+t7)][(-t5+t8) + 1]))) + A[t5 % 2][(-t5+t6)][(-t5+t7)][(-t5+t8)]);;
             }
+          }
         }
-
+      }
     }
-#pragma endscop
+  }
+}
 
 #ifdef TIME
     gettimeofday(&end, 0);

@@ -19,7 +19,7 @@
 #include "decls.h"
 #else
 #define N 300L
-#define T 200L
+#define T 500L
 #endif
 
 #define NUM_FP_OPS 15

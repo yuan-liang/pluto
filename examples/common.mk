@@ -5,8 +5,8 @@
 #
 BASEDIR=$(dir $(lastword $(MAKEFILE_LIST)))
 
-#CC=icc
-CC=gcc
+CC=icc
+#CC=gcc
 
 NPROCS=4
 NTHREADS=4
